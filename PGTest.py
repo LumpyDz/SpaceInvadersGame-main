@@ -2,20 +2,84 @@
 import sys, pygame
 import random as R
 
-class PlayerBase:
+#Player
+class PlayerBase(pygame.sprite.Sprite):
+
     def __init__(self, playerImg = '', HP = 0, X = 0, Y = 0):
-        self.playerImg = playerImg
+        pygame.sprite.Sprite.__init__(self)
+        self.playerImg = pygame.image.load(playerImg)
+        self.rect = self.playerImg.get_rect()
+        self.score = 0
         self.HP = HP
         self.X = X
         self.Y = Y
         self.playerSpeed = 0
+        self.lKey = False
+        self.rKey = False
 
     def UpdatePosition(self,X,Y):
-        screen.blit(self.playerImg, (X,Y))
+        #Player movement and quit
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT or (event.key == pygame.K_LEFT and event.key == pygame.K_SPACE):
+                        self.playerSpeed = -0.1
+                        self.lKey = True
+                        print('lkey down')
+                    if event.key == pygame.K_RIGHT:
+                        self.playerSpeed = 0.1
+                        self.rKey = True
+                        print('rkey down')
+                    if event.key == pygame.K_SPACE:
+                        self.Fire()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LEFT:
+                        self.lKey = False
+                    elif event.key == pygame.K_RIGHT:
+                        self.rKey = False
+                    if self.lKey == False and self.rKey == False:
+                        self.playerSpeed = 0
+        #Adjust speed based on above input
+        self.X += self.playerSpeed
+        #Screen bounds for going off screen
+        if self.X <= 20:
+            self.X = 620
+        elif self.X >= 620:
+            self.X = 20
+        #Updae Screen
+        screen.blit(self.playerImg, (self.X-32,self.Y-32))
 
-class EnemyBase:
+
+    def Fire(self):
+            proj = BasePlayerProjectile(self.X-24, self.Y-50)
+            proj.updateProj()
+            print('fired')
+
+
+
+class BasePlayerProjectile(pygame.sprite.Sprite):
+    def __init__(self, x = 0, y = 0):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('bullet.png')
+        self.speed = 1
+        self.damage = 10
+        self.X = x
+        self.Y = y
+
+    def updateProj(self):
+        while self.Y > -10:
+            screen.blit(self.image,(self.X,self.Y))
+            self.Y -= .1
+
+
+#Enemy
+class EnemyBase(pygame.sprite.Sprite):
     def __init__(self, enemyImg='', HP = 0, score = 0, enemyX=300 ,enemyY=780):
+        pygame.sprite.Sprite.__init__(self)
         self.enemyImg = pygame.image.load(enemyImg)
+        self.rect = self.enemyImg.get_rect()
         self.HP = HP
         self.score = score
         self.X = enemyX
@@ -34,55 +98,23 @@ icon = pygame.image.load('SpaceInvadersLogo.png')
 pygame.display.set_icon(icon)
 
 #PlayerStuff
-PlayerImg = pygame.image.load('PlayerImg.png')
-playerX = 300
-playerY = 780
-playerSpeed = 0
-lKey = False
-rKey = False
+#start point in middle bottom of screen
 
 #Enemy Stuff
 enemyCount = 0
 
-def Player(x,y):
-    screen.blit(PlayerImg, (x-32,y-32))
 def Enemy():
-    enemy1 = EnemyBase('ufo.png', 10, 10, R.randint(200,250),R.randint(200,250))
+    enemy1 = EnemyBase('ufo.png', 10, 10, 250,250)
     screen.blit(enemy1.enemyImg,(enemy1.X - 32,enemy1.Y - 32))
-
-player1 = PlayerBase(PlayerImg, 10, 280, 780)
+#defualt spawn location is 300,780
+player1 = PlayerBase('PlayerImg.png', 10, 300, 780)
 #Game Loop
 running = True
+
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        #Controlling player
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                playerSpeed = -0.1
-                lKey = True
-                print('Moved left',playerX,lKey)
-            if event.key == pygame.K_RIGHT:
-                playerSpeed = 0.1
-                rKey = True
-                print('Moved right',playerX,rKey)
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT:
-                lKey = False
-            if event.key == pygame.K_RIGHT:
-                rKey = False
-            if lKey == False and rKey == False:
-                playerSpeed = 0
-    #screen color
+    #screen color controls backgrounnd color and adjusts pixels when other objects move over portions of the screen that we do not want to change
     screen.fill((255,200,0))
     #Move Player and screen bounds
-    playerX += playerSpeed
-    if playerX <= 20:
-        playerX = 620
-    elif playerX >= 620:
-        playerX = 20
-    player1.UpdatePosition(playerX,playerY)
-    Player(playerX,playerY)
+    player1.UpdatePosition(player1.X,player1.Y)
     Enemy()
     pygame.display.update()
